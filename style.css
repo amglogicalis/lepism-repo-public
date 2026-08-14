@@ -646,57 +646,70 @@ body {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
 }
 
-/* Login Gate */
+/* Login Gate (Centered Glassmorphism) */
 .login-gate-wrapper {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
+  width: 100vw;
+  height: 100vh;
   background: var(--bg-dark);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 500;
+  z-index: 1000;
   padding: 20px;
   background-image: 
-    radial-gradient(circle at 50% 30%, rgba(72, 86, 111, 0.25) 0%, transparent 60%),
-    radial-gradient(circle at 80% 80%, rgba(104, 122, 156, 0.12) 0%, transparent 50%);
+    radial-gradient(circle at 50% 40%, rgba(72, 86, 111, 0.22) 0%, transparent 60%),
+    radial-gradient(circle at 80% 80%, rgba(104, 122, 156, 0.1) 0%, transparent 50%);
 }
 
 .login-card {
-  max-width: 480px;
-  width: 100%;
-  padding: 36px;
+  width: 440px;
+  max-width: 90vw;
+  padding: 40px 32px;
   text-align: center;
-  border: 1px solid var(--border-focus);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
-  background: var(--bg-card);
-  backdrop-filter: blur(16px);
+  border-radius: var(--radius-lg);
+  background: rgba(18, 24, 34, 0.95);
+  border: 1px solid rgba(104, 122, 156, 0.35);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(72, 86, 111, 0.25);
+  backdrop-filter: blur(20px);
+  margin: auto;
+}
+
+.login-logo-badge {
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 20px auto;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(72, 86, 111, 0.4) 0%, rgba(18, 24, 34, 0.9) 100%);
+  border: 1px solid rgba(104, 122, 156, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 25px rgba(72, 86, 111, 0.45);
 }
 
 .login-logo {
-  width: 72px !important;
-  height: 72px !important;
-  max-width: 72px !important;
-  max-height: 72px !important;
+  width: 44px !important;
+  height: 44px !important;
   object-fit: contain;
-  margin: 0 auto 16px auto;
-  display: block;
-  filter: drop-shadow(0 0 12px rgba(72, 86, 111, 0.6));
+  filter: drop-shadow(0 0 8px rgba(72, 86, 111, 0.8));
 }
 
 .login-title {
-  font-size: 1.4rem;
+  font-size: 1.35rem;
   font-weight: 800;
   color: var(--text-main);
   margin-bottom: 8px;
+  letter-spacing: 0.5px;
 }
 
 .login-subtitle {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: var(--text-muted);
-  line-height: 1.5;
+  line-height: 1.55;
+  margin-bottom: 24px;
 }
 
 .user-badge {
@@ -715,4 +728,5 @@ body {
 .hidden {
   display: none !important;
 }
+
 

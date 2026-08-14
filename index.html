@@ -13,19 +13,21 @@
 <body>
 
   <!-- Auth / Login Gate (Shown when unauthenticated) -->
-  <div id="login-gate" class="login-gate-wrapper" style="display: flex;">
+  <div id="login-gate" class="login-gate-wrapper">
     <div class="login-card glass-card">
-      <img src="assets/logo_lepism.png" alt="Lepism Logo" class="login-logo" width="72" height="72" style="width: 72px; height: 72px; object-fit: contain; margin: 0 auto 16px auto; display: block;">
+      <div class="login-logo-badge">
+        <img src="assets/logo_lepism.png" alt="Lepism Logo" class="login-logo" width="48" height="48">
+      </div>
       <h2 class="login-title">Acceso Protegido — Lepism Studio</h2>
       <p class="login-subtitle">Introduce tu GitHub Personal Access Token (PAT) con permisos <code>repo</code> y <code>workflow</code> para conectar tu bóveda <code>.lepism-storage</code> y auditar tus proyectos.</p>
       
-      <div class="form-group" style="text-align: left; margin-top: 20px;">
-        <label class="form-label">GitHub Personal Access Token (PAT)</label>
+      <div class="form-group" style="text-align: left; margin-bottom: 18px;">
+        <label class="form-label" style="font-size: 0.78rem;">GitHub Personal Access Token (PAT)</label>
         <input type="password" id="login-pat-input" class="form-input" placeholder="ghp_..." autocomplete="off">
-        <span class="text-muted" style="font-size: 0.72rem; display: block; margin-top: 4px;">El token se almacena de forma segura únicamente en tu sesión local.</span>
+        <span class="text-muted" style="font-size: 0.72rem; display: block; margin-top: 5px;">El token se almacena únicamente en tu sesión local de navegador.</span>
       </div>
 
-      <button id="btn-login-connect" onclick="window.lepismLogin()" class="btn btn-primary full-width" style="margin-top: 14px;">
+      <button id="btn-login-connect" onclick="window.lepismLogin()" class="btn btn-primary full-width" style="padding: 12px; font-size: 0.92rem;">
         🔑 Conectar Bóveda y Desbloquear Consola
       </button>
     </div>
