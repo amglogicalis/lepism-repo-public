@@ -247,8 +247,53 @@ body {
 }
 
 .header-left p {
-  font-size: 0.85rem;
-  margin-top: 2px;
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.target-pill-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(72, 86, 111, 0.18);
+  border: 1px solid var(--border-subtle);
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-main);
+  text-align: left;
+}
+
+.target-pill-btn:hover {
+  background: rgba(72, 86, 111, 0.35);
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(104, 122, 156, 0.25);
+}
+
+.target-pill-icon {
+  font-size: 1.1rem;
+}
+
+.target-pill-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.target-pill-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.target-pill-name {
+  font-size: 0.82rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-main);
 }
 
 .health-pill {

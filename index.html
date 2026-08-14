@@ -145,6 +145,16 @@
           <p id="view-subtitle" class="text-muted">Métricas de salud, alertas de decadencia y estado del ecosistema</p>
         </div>
         <div class="header-right">
+          <!-- Unified Target Selector -->
+          <button class="target-pill-btn" id="btn-target-selector" onclick="window.lepismOpenTargetModal()" title="Configurar o Cambiar Target del Proyecto">
+            <span class="target-pill-icon">🎯</span>
+            <div class="target-pill-info">
+              <span class="target-pill-label">TARGET ACTIVO</span>
+              <span class="target-pill-name" id="active-target-label">amglogicalis/sample-project</span>
+            </div>
+            <span class="badge badge-info" id="active-target-type-badge">GITHUB</span>
+          </button>
+
           <div class="health-pill" id="global-health-pill">
             <span class="health-dot"></span>
             <span id="global-health-label">HEALTH SCORE: 100/100</span>

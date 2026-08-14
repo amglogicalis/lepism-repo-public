@@ -4,11 +4,21 @@
 (function () {
   'use strict';
 
+  // Default Target
+  const defaultTarget = {
+    type: 'github',
+    name: 'amglogicalis/sample-project',
+    repo: 'amglogicalis/sample-project',
+    branch: 'main',
+    monorepoPath: '',
+  };
+
   // State
   const state = {
     currentView: 'dashboard',
     githubToken: sessionStorage.getItem('lepism_github_token') || '',
     user: JSON.parse(sessionStorage.getItem('lepism_user') || 'null'),
+    activeTarget: JSON.parse(sessionStorage.getItem('lepism_active_target') || JSON.stringify(defaultTarget)),
     runs: JSON.parse(localStorage.getItem('lepism_runs') || '[]'),
     activeRunInterval: null,
   };
@@ -19,6 +29,8 @@
   const loginPatInput = document.getElementById('login-pat-input');
   const btnLoginConnect = document.getElementById('btn-login-connect');
   const userDisplayName = document.getElementById('user-display-name');
+  const activeTargetLabel = document.getElementById('active-target-label');
+  const activeTargetTypeBadge = document.getElementById('active-target-type-badge');
 
   const viewTitle = document.getElementById('view-title');
   const viewSubtitle = document.getElementById('view-subtitle');
@@ -36,6 +48,7 @@
     setupAuth();
     setupNavigation();
     setupModals();
+    updateTargetHeaderUI();
 
     if (state.githubToken && state.user) {
       showProtectedConsole();
@@ -145,8 +158,149 @@
       userLabel.textContent = `👤 @${state.user.login}`;
     }
 
+    updateTargetHeaderUI();
     navigate(window.location.hash.replace('#', '') || 'dashboard');
   }
+
+  function updateTargetHeaderUI() {
+    if (activeTargetLabel && activeTargetTypeBadge) {
+      activeTargetLabel.textContent = state.activeTarget?.name || 'Target sin definir';
+      activeTargetTypeBadge.textContent = (state.activeTarget?.type || 'GITHUB').toUpperCase();
+    }
+  }
+
+  // ─── Target Modal & Configurator ────────────────────────────────────────────
+
+  window.lepismOpenTargetModal = function () {
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const target = state.activeTarget || defaultTarget;
+
+    modalTitle.textContent = '🎯 Configurar / Cambiar Target del Proyecto';
+    modalBody.innerHTML = `
+      <p class="card-description">Define hacia qué repositorio, bucket S3 o entorno local apunta Lepism para auditar y ejecutar sandboxes.</p>
+      
+      <div class="form-group">
+        <label class="form-label">Tipo de Target</label>
+        <select id="modal-target-type" class="form-select" onchange="window.lepismToggleTargetTypeFields(this.value)">
+          <option value="github" ${target.type === 'github' ? 'selected' : ''}>🐙 Repositorio GitHub (owner/repo)</option>
+          <option value="s3" ${target.type === 's3' ? 'selected' : ''}>☁️ S3 / Cloud Storage (AWS / MinIO / R2)</option>
+          <option value="url" ${target.type === 'url' ? 'selected' : ''}>🔗 URL Personalizada / Registro Privado</option>
+          <option value="local" ${target.type === 'local' ? 'selected' : ''}>💻 Entorno Local (Ruta en Disco)</option>
+        </select>
+      </div>
+
+      <!-- GitHub Fields -->
+      <div id="target-fields-github" class="target-field-group">
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Repositorio GitHub (owner/repo)</label>
+            <input type="text" id="target-gh-repo" class="form-input" placeholder="ej: amglogicalis/my-app" value="${escapeHtml(target.repo || '')}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Rama Objetivo</label>
+            <input type="text" id="target-gh-branch" class="form-input" placeholder="main" value="${escapeHtml(target.branch || 'main')}">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Subdirectorio Monorepo (Opcional)</label>
+          <input type="text" id="target-gh-monorepo" class="form-input" placeholder="ej: packages/backend" value="${escapeHtml(target.monorepoPath || '')}">
+        </div>
+      </div>
+
+      <!-- S3 Fields -->
+      <div id="target-fields-s3" class="target-field-group hidden">
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">S3 Bucket Name</label>
+            <input type="text" id="target-s3-bucket" class="form-input" placeholder="my-corp-artifacts" value="${escapeHtml(target.s3Bucket || '')}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Región S3</label>
+            <input type="text" id="target-s3-region" class="form-input" placeholder="us-east-1" value="${escapeHtml(target.s3Region || '')}">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Endpoint S3 (Opcional para MinIO/R2)</label>
+          <input type="text" id="target-s3-endpoint" class="form-input" placeholder="https://s3.custom.endpoint" value="${escapeHtml(target.s3Endpoint || '')}">
+        </div>
+      </div>
+
+      <!-- URL Fields -->
+      <div id="target-fields-url" class="target-field-group hidden">
+        <div class="form-group">
+          <label class="form-label">URL del Manifiesto / Registro</label>
+          <input type="url" id="target-url-manifest" class="form-input" placeholder="https://raw.githubusercontent.com/org/repo/main/package.json" value="${escapeHtml(target.manifestUrl || '')}">
+        </div>
+      </div>
+
+      <!-- Local FS Fields -->
+      <div id="target-fields-local" class="target-field-group hidden">
+        <div class="form-group">
+          <label class="form-label">Ruta en Disco Local</label>
+          <input type="text" id="target-local-path" class="form-input" placeholder="c:/mis-proyectos/my-app/package.json" value="${escapeHtml(target.localPath || '')}" ${!isLocalhost ? 'disabled' : ''}>
+        </div>
+        ${!isLocalhost ? `
+          <div style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 6px; padding: 12px; margin-top: 10px; font-size: 0.8rem; color: var(--warning);">
+            ⚠️ <strong>Modo Online (GitHub Pages):</strong> El navegador no puede acceder directamente a tu disco local por seguridad. Para usar targets locales en disco, inicia la consola en localhost mediante <code>lepism console --port 7420</code> o usa el CLI/SDK.
+          </div>
+        ` : `
+          <div style="background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 6px; padding: 10px; margin-top: 10px; font-size: 0.8rem; color: var(--success);">
+            ✔ Entorno Localhost detectado: Acceso a rutas locales permitido.
+          </div>
+        `}
+      </div>
+    `;
+
+    modalFooter.innerHTML = `
+      <button class="btn btn-secondary btn-sm" onclick="window.lepismCloseModal()">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="window.lepismSaveTargetFromModal()">💾 Guardar y Aplicar Target</button>
+    `;
+
+    modalContainer.classList.remove('hidden');
+    window.lepismToggleTargetTypeFields(target.type || 'github');
+  };
+
+  window.lepismToggleTargetTypeFields = function (type) {
+    const groups = ['github', 's3', 'url', 'local'];
+    groups.forEach(g => {
+      const el = document.getElementById(`target-fields-${g}`);
+      if (el) {
+        if (g === type) el.classList.remove('hidden');
+        else el.classList.add('hidden');
+      }
+    });
+  };
+
+  window.lepismSaveTargetFromModal = function () {
+    const type = document.getElementById('modal-target-type')?.value || 'github';
+    let newTarget = { type, name: '' };
+
+    if (type === 'github') {
+      const repo = document.getElementById('target-gh-repo')?.value.trim() || 'amglogicalis/my-app';
+      const branch = document.getElementById('target-gh-branch')?.value.trim() || 'main';
+      const monorepoPath = document.getElementById('target-gh-monorepo')?.value.trim() || '';
+      newTarget = { type: 'github', name: repo, repo, branch, monorepoPath };
+    } else if (type === 's3') {
+      const bucket = document.getElementById('target-s3-bucket')?.value.trim() || 'my-bucket';
+      const region = document.getElementById('target-s3-region')?.value.trim() || 'us-east-1';
+      const endpoint = document.getElementById('target-s3-endpoint')?.value.trim() || '';
+      newTarget = { type: 's3', name: `s3://${bucket}`, s3Bucket: bucket, s3Region: region, s3Endpoint: endpoint };
+    } else if (type === 'url') {
+      const manifestUrl = document.getElementById('target-url-manifest')?.value.trim() || '';
+      newTarget = { type: 'url', name: manifestUrl || 'Custom URL', manifestUrl };
+    } else if (type === 'local') {
+      const localPath = document.getElementById('target-local-path')?.value.trim() || './';
+      newTarget = { type: 'local', name: localPath, localPath, isLocalOnly: true };
+    }
+
+    state.activeTarget = newTarget;
+    sessionStorage.setItem('lepism_active_target', JSON.stringify(newTarget));
+
+    updateTargetHeaderUI();
+    window.lepismCloseModal();
+    renderView(state.currentView);
+    showToast(`Target actualizado: ${newTarget.name} [${newTarget.type.toUpperCase()}]`, 'success');
+  };
 
   function setupNavigation() {
     navItems.forEach(item => {
@@ -208,6 +362,8 @@
     viewTitle.textContent = 'Dashboard';
     viewSubtitle.textContent = 'Métricas de salud, alertas de decadencia y estado del ecosistema';
 
+    const target = state.activeTarget || defaultTarget;
+
     const recentRunsHtml = state.runs.length === 0
       ? '<tr><td colspan="4" class="text-muted">Sin ejecuciones registradas. Selecciona una herramienta en el menú para comenzar.</td></tr>'
       : state.runs.slice(0, 4).map(r => `
@@ -222,6 +378,11 @@
     viewContainer.innerHTML = `
       <div class="grid-4">
         <div class="stat-box">
+          <span class="stat-label">Target Activo</span>
+          <span class="stat-value" style="font-size:1.1rem; font-family:var(--font-mono); color:var(--text-main);">${escapeHtml(target.name)}</span>
+          <span class="text-muted" style="font-size:0.75rem;">Tipo: ${target.type.toUpperCase()}</span>
+        </div>
+        <div class="stat-box">
           <span class="stat-label">Molt Health Score</span>
           <span class="stat-value" style="color: var(--success);">100/100</span>
           <span class="text-muted" style="font-size:0.75rem;">🟢 Estado Óptimo</span>
@@ -234,19 +395,14 @@
         <div class="stat-box">
           <span class="stat-label">Ejecuciones Totales</span>
           <span class="stat-value">${state.runs.length}</span>
-          <span class="text-muted" style="font-size:0.75rem;">Historial local activo</span>
-        </div>
-        <div class="stat-box">
-          <span class="stat-label">Protección CVEs</span>
-          <span class="stat-value" style="color: var(--success);">OSV.dev</span>
-          <span class="text-muted" style="font-size:0.75rem;">Conexión directa activa</span>
+          <span class="text-muted" style="font-size:0.75rem;">Historial de auditoría</span>
         </div>
       </div>
 
       <div class="grid-2" style="margin-top: 24px;">
         <div class="glass-card">
           <h3 class="card-title">🚀 Acciones Rápidas</h3>
-          <p class="card-description">Dispara auditorías estructurales y pruebas de sandbox con 1 clic</p>
+          <p class="card-description">Dispara auditorías estructurales y pruebas de sandbox contra <strong>${escapeHtml(target.name)}</strong></p>
           <div style="display:flex; flex-direction:column; gap:10px;">
             <button class="btn btn-primary" onclick="window.location.hash='scan'">🔍 Escaneo Polyglot Rápido</button>
             <button class="btn btn-secondary" onclick="window.location.hash='sandbox'">🧪 Validar Sandbox Efímero</button>
@@ -280,16 +436,21 @@
     viewTitle.textContent = '🔍 Polyglot Dependency Scanner';
     viewSubtitle.textContent = 'Escaneo sin instalación contra registros oficiales (NPM, PyPI, Crates.io, Go, RubyGems)';
 
+    const target = state.activeTarget || defaultTarget;
+
     viewContainer.innerHTML = `
       <div class="glass-card">
-        <h3 class="card-title">Configuración de Escaneo</h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 class="card-title" style="margin:0;">Configuración de Escaneo</h3>
+          <span class="badge badge-info">Target: ${escapeHtml(target.name)} [${target.type.toUpperCase()}]</span>
+        </div>
         <p class="card-description">Indica el ecosistema y el contenido o archivo de tu manifiesto de dependencias</p>
 
         <form id="form-scan" onsubmit="window.lepismExecuteScan(event)">
           <div class="grid-2">
             <div class="form-group">
-              <label class="form-label">Nombre del Proyecto</label>
-              <input type="text" id="scan-name" class="form-input" placeholder="ej: my-awesome-project">
+              <label class="form-label">Nombre del Proyecto / Target</label>
+              <input type="text" id="scan-name" class="form-input" placeholder="ej: my-awesome-project" value="${escapeHtml(target.name || '')}">
             </div>
             <div class="form-group">
               <label class="form-label">Ecosistema</label>
@@ -474,20 +635,25 @@
     viewTitle.textContent = '🧪 Ephemeral GitHub Actions Sandbox';
     viewSubtitle.textContent = 'Ejecución de tu suite de tests real contra el update propuesto en un runner efímero ($0)';
 
+    const target = state.activeTarget || defaultTarget;
+
     viewContainer.innerHTML = `
       <div class="glass-card">
-        <h3 class="card-title">Configuración del Sandbox</h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 class="card-title" style="margin:0;">Configuración del Sandbox</h3>
+          <span class="badge badge-info">Target: ${escapeHtml(target.name)} [${target.type.toUpperCase()}]</span>
+        </div>
         <p class="card-description">Genera el workflow de GitHub Actions que valida tus tests antes de tocar producción</p>
 
         <form id="form-sandbox" onsubmit="window.lepismExecuteSandbox(event)">
           <div class="grid-2">
             <div class="form-group">
-              <label class="form-label">Repositorio GitHub (owner/repo)</label>
-              <input type="text" id="sandbox-repo" class="form-input" placeholder="ej: amglogicalis/my-app">
+              <label class="form-label">Repositorio GitHub Target (owner/repo)</label>
+              <input type="text" id="sandbox-repo" class="form-input" placeholder="ej: amglogicalis/my-app" value="${escapeHtml(target.repo || '')}">
             </div>
             <div class="form-group">
               <label class="form-label">Rama Destino (Opcional)</label>
-              <input type="text" id="sandbox-branch" class="form-input" placeholder="main">
+              <input type="text" id="sandbox-branch" class="form-input" placeholder="main" value="${escapeHtml(target.branch || 'main')}">
             </div>
           </div>
 
@@ -553,20 +719,25 @@
     viewTitle.textContent = '🚀 Autonomous Safe Auto-PR';
     viewSubtitle.textContent = 'Apertura automática de Pull Requests con reporte de Metamorphosis y resultado de sandbox';
 
+    const target = state.activeTarget || defaultTarget;
+
     viewContainer.innerHTML = `
       <div class="glass-card">
-        <h3 class="card-title">Configuración de Auto-PR</h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 class="card-title" style="margin:0;">Configuración de Auto-PR</h3>
+          <span class="badge badge-info">Target: ${escapeHtml(target.name)} [${target.type.toUpperCase()}]</span>
+        </div>
         <p class="card-description">Genera el workflow que abre PRs enriquecidos automáticamente</p>
 
         <form id="form-autopr" onsubmit="window.lepismExecuteAutoPr(event)">
           <div class="grid-2">
             <div class="form-group">
-              <label class="form-label">Repositorio GitHub (owner/repo)</label>
-              <input type="text" id="autopr-repo" class="form-input" placeholder="ej: amglogicalis/my-app">
+              <label class="form-label">Repositorio GitHub Target (owner/repo)</label>
+              <input type="text" id="autopr-repo" class="form-input" placeholder="ej: amglogicalis/my-app" value="${escapeHtml(target.repo || '')}">
             </div>
             <div class="form-group">
               <label class="form-label">Rama Base</label>
-              <input type="text" id="autopr-branch" class="form-input" placeholder="main">
+              <input type="text" id="autopr-branch" class="form-input" placeholder="main" value="${escapeHtml(target.branch || 'main')}">
             </div>
           </div>
 
@@ -632,16 +803,21 @@
     viewTitle.textContent = '⏰ Health Watchdog Cron';
     viewSubtitle.textContent = 'Auditoría periódica programada en GitHub Actions con notificaciones a Discord o Slack';
 
+    const target = state.activeTarget || defaultTarget;
+
     viewContainer.innerHTML = `
       <div class="glass-card">
-        <h3 class="card-title">Configurar Watchdog Programado</h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 class="card-title" style="margin:0;">Configurar Watchdog Programado</h3>
+          <span class="badge badge-info">Target: ${escapeHtml(target.name)} [${target.type.toUpperCase()}]</span>
+        </div>
         <p class="card-description">Genera un workflow con cron que audita el repo periódicamente a $0 coste</p>
 
         <form id="form-schedule" onsubmit="window.lepismExecuteSchedule(event)">
           <div class="grid-2">
             <div class="form-group">
-              <label class="form-label">Repositorio GitHub</label>
-              <input type="text" id="sched-repo" class="form-input" placeholder="ej: amglogicalis/my-app">
+              <label class="form-label">Repositorio GitHub Target</label>
+              <input type="text" id="sched-repo" class="form-input" placeholder="ej: amglogicalis/my-app" value="${escapeHtml(target.repo || '')}">
             </div>
             <div class="form-group">
               <label class="form-label">Expresión Cron</label>
@@ -711,17 +887,19 @@
               <th>ID</th>
               <th>Función</th>
               <th>Nombre</th>
+              <th>Target</th>
               <th>Estado</th>
               <th>Fecha</th>
               <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            ${state.runs.length === 0 ? '<tr><td colspan="6" class="text-muted">Sin ejecuciones previas en la sesión actual.</td></tr>' : state.runs.map(r => `
+            ${state.runs.length === 0 ? '<tr><td colspan="7" class="text-muted">Sin ejecuciones previas en la sesión actual.</td></tr>' : state.runs.map(r => `
               <tr>
                 <td><code>${r.runId.substring(0, 12)}...</code></td>
                 <td><span class="badge badge-info">${r.functionType}</span></td>
                 <td><strong>${escapeHtml(r.name)}</strong></td>
+                <td><span class="badge badge-safe" style="font-size:0.7rem;">${escapeHtml(r.target?.name || state.activeTarget?.name || 'GitHub')}</span></td>
                 <td><span class="badge ${r.status === 'running' ? 'badge-risky' : 'badge-safe'}">${r.status.toUpperCase()}</span></td>
                 <td>${new Date(r.startedAt).toLocaleString()}</td>
                 <td>
@@ -747,6 +925,13 @@
         <p class="card-description">Sigue estos 4 pasos para mantener tus repositorios siempre al día con 0% riesgo de rotura</p>
 
         <div style="display:flex; flex-direction:column; gap:16px; margin-top:20px;">
+          <div class="stat-box">
+            <strong style="color:var(--text-main); font-size:1.05rem;">🎯 Paso 0 — Configurar tu Target</strong>
+            <p class="text-muted" style="font-size:0.85rem; margin-top:4px;">
+              Haz clic en el botón superior <strong>🎯 TARGET ACTIVO</strong> para definir el repositorio de GitHub, Bucket S3 o ruta local sobre la que quieres trabajar.
+            </p>
+          </div>
+
           <div class="stat-box">
             <strong style="color:var(--text-main); font-size:1.05rem;">1️⃣ Paso 1 — Escaneo Inicial (Scan & Analyze)</strong>
             <p class="text-muted" style="font-size:0.85rem; margin-top:4px;">
@@ -783,7 +968,7 @@
 
   window.lepismExecuteScan = function (e) {
     e.preventDefault();
-    const name = document.getElementById('scan-name').value || 'MyProject';
+    const name = document.getElementById('scan-name').value || state.activeTarget?.name || 'MyProject';
     const ecosystem = document.getElementById('scan-ecosystem').value || 'npm';
 
     const box = document.getElementById('scan-results-box');
@@ -799,7 +984,7 @@
     ];
 
     content.innerHTML = `
-      <p style="margin-bottom:12px;"><strong>Proyecto:</strong> ${escapeHtml(name)} | <strong>Ecosistema:</strong> ${ecosystem.toUpperCase()}</p>
+      <p style="margin-bottom:12px;"><strong>Proyecto:</strong> ${escapeHtml(name)} | <strong>Ecosistema:</strong> ${ecosystem.toUpperCase()} | <strong>Target:</strong> ${escapeHtml(state.activeTarget?.type.toUpperCase() || 'GITHUB')}</p>
       <table class="data-table">
         <thead>
           <tr>
@@ -822,7 +1007,7 @@
       </table>
     `;
 
-    addRunRecord('scan', `Escaneo: ${name}`, { ecosystem }, { depsCount: deps.length });
+    addRunRecord('scan', `Escaneo: ${name}`, { ecosystem, target: state.activeTarget }, { depsCount: deps.length });
     showToast('Escaneo completado con éxito', 'success');
   };
 
@@ -850,7 +1035,7 @@
       <p class="text-muted">✅ Recomendación: Procede con la actualización de parches y valida <code>axios@1.6.8</code> en el Sandbox.</p>
     `;
 
-    addRunRecord('analyze', 'Análisis de Riesgo y Molt Score', {}, { score: 94 });
+    addRunRecord('analyze', 'Análisis de Riesgo y Molt Score', { target: state.activeTarget }, { score: 94 });
     showToast('Molt Score calculado: 94/100', 'success');
   };
 
@@ -885,7 +1070,7 @@
       </table>
     `;
 
-    addRunRecord('phantom', 'Escaneo de Dependencias Fantasma', {}, { phantoms: 2 });
+    addRunRecord('phantom', 'Escaneo de Dependencias Fantasma', { target: state.activeTarget }, { phantoms: 2 });
     showToast('2 Dependencias Fantasma detectadas', 'warning');
   };
 
@@ -904,7 +1089,7 @@
       <div class="code-viewer"><span class="diff-del">- export interface AxiosRequestConfig { cancelToken?: CancelToken; }</span><span class="diff-add">+ export interface AxiosRequestConfig { signal?: AbortSignal; }</span><span class="diff-del">- Axios.prototype.defaults.headers.common = {};</span><span class="diff-add">+ Axios.create({ headers: {} });</span></div>
     `;
 
-    addRunRecord('metamorphosis', `API Diff: ${pkg}`, { from, to }, { breakingChanges: 2 });
+    addRunRecord('metamorphosis', `API Diff: ${pkg}`, { from, to, target: state.activeTarget }, { breakingChanges: 2 });
     showToast('API Diff generado con éxito', 'success');
   };
 
@@ -945,7 +1130,7 @@
       </table>
     `;
 
-    addRunRecord('epoch', 'Comprobación de Ciclo de Vida EOL', {}, { tracked: 2 });
+    addRunRecord('epoch', 'Comprobación de Ciclo de Vida EOL', { target: state.activeTarget }, { tracked: 2 });
     showToast('Ciclo de vida actualizado', 'success');
   };
 
@@ -975,13 +1160,13 @@
       </table>
     `;
 
-    addRunRecord('collision', 'Detección de Colisiones Peer', {}, { collisions: 1 });
+    addRunRecord('collision', 'Detección de Colisiones Peer', { target: state.activeTarget }, { collisions: 1 });
     showToast('Colisión peer detectada', 'warning');
   };
 
   window.lepismExecuteSandbox = function (e) {
     e.preventDefault();
-    const repo = document.getElementById('sandbox-repo').value || 'amglogicalis/my-app';
+    const repo = document.getElementById('sandbox-repo').value || state.activeTarget?.repo || 'amglogicalis/my-app';
     const pkg = document.getElementById('sandbox-package').value || 'react';
     const ver = document.getElementById('sandbox-version').value || '18.3.1';
     const testCmd = document.getElementById('sandbox-test-cmd').value || 'npm test';
@@ -1000,7 +1185,7 @@
       </div>
     `;
 
-    addRunRecord('sandbox', `Sandbox: ${pkg}@${ver}`, { repo, testCmd }, { status: 'PASS' });
+    addRunRecord('sandbox', `Sandbox: ${pkg}@${ver}`, { repo, testCmd, target: state.activeTarget }, { status: 'PASS' });
     showToast('Workflow de Sandbox generado', 'success');
   };
 
@@ -1015,13 +1200,13 @@
       <div class="code-viewer">{\n  "dependencies": {\n    "react": "^18.3.1",\n    "axios": "^1.6.8",\n    "lodash": "^4.17.21"\n  }\n}</div>
     `;
 
-    addRunRecord('molt', 'Muda Atómica de Manifiesto', {}, { updated: 3 });
+    addRunRecord('molt', 'Muda Atómica de Manifiesto', { target: state.activeTarget }, { updated: 3 });
     showToast('Molt aplicado con éxito', 'success');
   };
 
   window.lepismExecuteAutoPr = function (e) {
     e.preventDefault();
-    const repo = document.getElementById('autopr-repo').value || 'amglogicalis/my-app';
+    const repo = document.getElementById('autopr-repo').value || state.activeTarget?.repo || 'amglogicalis/my-app';
     const box = document.getElementById('autopr-results-box');
     const content = document.getElementById('autopr-results-content');
     box.classList.remove('hidden');
@@ -1035,13 +1220,13 @@
       </div>
     `;
 
-    addRunRecord('autopr', 'Auto-PR Dispatcher', { repo }, { pr: 'PR #42' });
+    addRunRecord('autopr', 'Auto-PR Dispatcher', { repo, target: state.activeTarget }, { pr: 'PR #42' });
     showToast('Auto-PR generado', 'success');
   };
 
   window.lepismExecuteSchedule = function (e) {
     e.preventDefault();
-    const repo = document.getElementById('sched-repo').value || 'amglogicalis/my-app';
+    const repo = document.getElementById('sched-repo').value || state.activeTarget?.repo || 'amglogicalis/my-app';
     const cron = document.getElementById('sched-cron').value || '0 9 * * 1';
     const box = document.getElementById('schedule-results-box');
     const content = document.getElementById('schedule-results-content');
@@ -1056,7 +1241,7 @@
       </div>
     `;
 
-    addRunRecord('schedule', `Watchdog: ${cron}`, { repo, cron }, { next: 'Lunes 09:00 UTC' });
+    addRunRecord('schedule', `Watchdog: ${cron}`, { repo, cron, target: state.activeTarget }, { next: 'Lunes 09:00 UTC' });
     showToast('Watchdog programado', 'success');
   };
 
@@ -1072,7 +1257,7 @@
       <div class="code-viewer">// Deduplicated: debug@2.6.9 ➔ debug@4.3.4\n// Verified: 142 SHA-512 integrity checksums</div>
     `;
 
-    addRunRecord('locksmith', 'Optimización Locksmith', {}, { reduction: '1.4 KB' });
+    addRunRecord('locksmith', 'Optimización Locksmith', { target: state.activeTarget }, { reduction: '1.4 KB' });
     showToast('Lockfile optimizado con éxito', 'success');
   };
 
@@ -1080,12 +1265,14 @@
 
   window.lepismShowInjectModal = function (encodedYaml, filename) {
     const yaml = decodeURIComponent(encodedYaml);
+    const target = state.activeTarget || defaultTarget;
+
     modalTitle.textContent = '⚡ Inyectar Workflow a Repositorio GitHub';
     modalBody.innerHTML = `
       <p class="card-description">Este archivo se creará directamente en <code>.github/workflows/${escapeHtml(filename)}</code> en tu repositorio:</p>
       <div class="form-group">
         <label class="form-label">Repositorio Destino (owner/repo)</label>
-        <input type="text" id="inject-target-repo" class="form-input" placeholder="ej: amglogicalis/my-app">
+        <input type="text" id="inject-target-repo" class="form-input" placeholder="ej: amglogicalis/my-app" value="${escapeHtml(target.repo || '')}">
       </div>
       <div class="form-group">
         <label class="form-label">Personal Access Token (PAT)</label>
@@ -1165,6 +1352,7 @@
       <div style="margin-bottom:14px;">
         <span class="badge badge-info">${run.functionType}</span>
         <span class="badge badge-safe" style="margin-left:6px;">${run.status.toUpperCase()}</span>
+        <span class="badge badge-info" style="margin-left:6px;">Target: ${escapeHtml(run.target?.name || 'Default')}</span>
       </div>
       <p class="text-muted" style="font-size:0.8rem;">Iniciado: ${new Date(run.startedAt).toLocaleString()}</p>
       <div class="code-viewer" style="margin-top:12px;">${escapeHtml(JSON.stringify(run.result || {}, null, 2))}</div>
@@ -1220,6 +1408,7 @@
       runId: `run_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       functionType: type,
       name,
+      target: config.target || state.activeTarget,
       status: 'completed',
       startedAt: new Date().toISOString(),
       completedAt: new Date().toISOString(),
