@@ -11,7 +11,28 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="app-layout">
+
+  <!-- Auth / Login Gate (Shown when unauthenticated) -->
+  <div id="login-gate" class="login-gate-wrapper">
+    <div class="login-card glass-card">
+      <img src="assets/logo_lepism.png" alt="Lepism Logo" class="login-logo">
+      <h2 class="login-title">Acceso Protegido — Lepism Studio</h2>
+      <p class="login-subtitle">Introduce tu GitHub Personal Access Token (PAT) con permisos <code>repo</code> y <code>workflow</code> para conectar tu bóveda <code>.lepism-storage</code> y auditar tus proyectos.</p>
+      
+      <div class="form-group" style="text-align: left; margin-top: 20px;">
+        <label class="form-label">GitHub Personal Access Token (PAT)</label>
+        <input type="password" id="login-pat-input" class="form-input" placeholder="ghp_..." autocomplete="off">
+        <span class="text-muted" style="font-size: 0.72rem; display: block; margin-top: 4px;">El token se almacena de forma segura únicamente en tu sesión local.</span>
+      </div>
+
+      <button id="btn-login-connect" class="btn btn-primary full-width" style="margin-top: 14px;">
+        🔑 Conectar Bóveda y Desbloquear Consola
+      </button>
+    </div>
+  </div>
+
+  <!-- Protected Console Layout (Shown ONLY when authenticated) -->
+  <div id="protected-console" class="app-layout hidden">
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
       <div class="sidebar-header">
@@ -105,8 +126,11 @@
       </nav>
 
       <div class="sidebar-footer">
-        <button class="btn btn-secondary btn-sm full-width" id="btn-token-config">
-          🔑 Configurar PAT GitHub
+        <div class="user-badge" id="user-display-badge">
+          <span id="user-display-name">👤 @amglogicalis</span>
+        </div>
+        <button class="btn btn-secondary btn-sm full-width" id="btn-logout" style="margin-top: 8px;">
+          🔒 Desconectar
         </button>
       </div>
     </aside>
@@ -121,7 +145,7 @@
         <div class="header-right">
           <div class="health-pill" id="global-health-pill">
             <span class="health-dot"></span>
-            <span id="global-health-label">HEALTH SCORE: 96/100</span>
+            <span id="global-health-label">HEALTH SCORE: 100/100</span>
           </div>
         </div>
       </header>

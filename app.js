@@ -8,11 +8,19 @@
   const state = {
     currentView: 'dashboard',
     githubToken: sessionStorage.getItem('lepism_github_token') || '',
+    user: JSON.parse(sessionStorage.getItem('lepism_user') || 'null'),
     runs: JSON.parse(localStorage.getItem('lepism_runs') || '[]'),
     activeRunInterval: null,
   };
 
   // DOM Elements
+  const loginGate = document.getElementById('login-gate');
+  const protectedConsole = document.getElementById('protected-console');
+  const loginPatInput = document.getElementById('login-pat-input');
+  const btnLoginConnect = document.getElementById('btn-login-connect');
+  const btnLogout = document.getElementById('btn-logout');
+  const userDisplayName = document.getElementById('user-display-name');
+
   const viewTitle = document.getElementById('view-title');
   const viewSubtitle = document.getElementById('view-subtitle');
   const viewContainer = document.getElementById('view-container');
@@ -22,14 +30,98 @@
   const modalBody = document.getElementById('modal-body');
   const modalFooter = document.getElementById('modal-footer');
   const btnModalClose = document.getElementById('btn-modal-close');
-  const btnTokenConfig = document.getElementById('btn-token-config');
   const toastContainer = document.getElementById('toast-container');
 
   // Initialization
   function init() {
+    setupAuth();
     setupNavigation();
     setupModals();
-    seedInitialRunsIfEmpty();
+
+    if (state.githubToken) {
+      showProtectedConsole();
+    } else {
+      showLoginGate();
+    }
+  }
+
+  function setupAuth() {
+    if (btnLoginConnect) {
+      btnLoginConnect.addEventListener('click', handleLogin);
+    }
+    if (loginPatInput) {
+      loginPatInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') handleLogin();
+      });
+    }
+    if (btnLogout) {
+      btnLogout.addEventListener('click', handleLogout);
+    }
+  }
+
+  async function handleLogin() {
+    const token = loginPatInput.value.trim();
+    if (!token) {
+      showToast('Por favor, introduce un Personal Access Token (PAT)', 'warning');
+      return;
+    }
+
+    btnLoginConnect.disabled = true;
+    btnLoginConnect.textContent = 'Verificando con GitHub...';
+
+    try {
+      const res = await fetch('https://api.github.com/user', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github.v3+json',
+          'User-Agent': 'Lepism-Console/1.0',
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error(`Token inválido o sin permisos (HTTP ${res.status})`);
+      }
+
+      const userData = await res.json();
+      state.githubToken = token;
+      state.user = userData;
+
+      sessionStorage.setItem('lepism_github_token', token);
+      sessionStorage.setItem('lepism_user', JSON.stringify(userData));
+
+      showToast(`¡Bienvenido, @${userData.login}! Bóveda conectada.`, 'success');
+      showProtectedConsole();
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      btnLoginConnect.disabled = false;
+      btnLoginConnect.textContent = '🔑 Conectar Bóveda y Desbloquear Consola';
+    }
+  }
+
+  function handleLogout() {
+    state.githubToken = '';
+    state.user = null;
+    sessionStorage.removeItem('lepism_github_token');
+    sessionStorage.removeItem('lepism_user');
+    if (loginPatInput) loginPatInput.value = '';
+    showToast('Sesión cerrada correctamente', 'info');
+    showLoginGate();
+  }
+
+  function showLoginGate() {
+    loginGate.classList.remove('hidden');
+    protectedConsole.classList.add('hidden');
+  }
+
+  function showProtectedConsole() {
+    loginGate.classList.add('hidden');
+    protectedConsole.classList.remove('hidden');
+
+    if (userDisplayName && state.user) {
+      userDisplayName.textContent = `👤 @${state.user.login}`;
+    }
+
     navigate(window.location.hash.replace('#', '') || 'dashboard');
   }
 
@@ -43,13 +135,10 @@
     });
 
     window.addEventListener('hashchange', () => {
+      if (!state.githubToken) return;
       const view = window.location.hash.replace('#', '') || 'dashboard';
       navigate(view);
     });
-
-    if (btnTokenConfig) {
-      btnTokenConfig.addEventListener('click', () => showTokenConfigModal());
-    }
   }
 
   function navigate(viewName) {
@@ -91,27 +180,38 @@
     viewTitle.textContent = 'Dashboard';
     viewSubtitle.textContent = 'Métricas de salud, alertas de decadencia y estado del ecosistema';
 
+    const recentRunsHtml = state.runs.length === 0
+      ? '<tr><td colspan="4" class="text-muted">Sin ejecuciones registradas. Ejecuta tu primera auditoría en el menú lateral.</td></tr>'
+      : state.runs.slice(0, 4).map(r => `
+        <tr>
+          <td><span class="badge badge-info">${r.functionType}</span></td>
+          <td><strong>${escapeHtml(r.name)}</strong></td>
+          <td><span class="badge badge-safe">${r.status.toUpperCase()}</span></td>
+          <td><button class="btn btn-secondary btn-sm" onclick="window.lepismShowRunDetails('${r.runId}')">Ver</button></td>
+        </tr>
+      `).join('');
+
     viewContainer.innerHTML = `
       <div class="grid-4">
         <div class="stat-box">
           <span class="stat-label">Molt Health Score</span>
-          <span class="stat-value" style="color: var(--success);">96/100</span>
-          <span class="text-muted" style="font-size:0.75rem;">🟢 Estado Saludable</span>
+          <span class="stat-value" style="color: var(--success);">100/100</span>
+          <span class="text-muted" style="font-size:0.75rem;">🟢 Estado Óptimo</span>
         </div>
         <div class="stat-box">
-          <span class="stat-label">Dependencias Totales</span>
-          <span class="stat-value">148</span>
-          <span class="text-muted" style="font-size:0.75rem;">12 pendientes de update</span>
+          <span class="stat-label">Bóveda de Estado</span>
+          <span class="stat-value" style="font-size:1.2rem; font-family:var(--font-mono); color:var(--accent-bright);">.lepism-storage</span>
+          <span class="text-muted" style="font-size:0.75rem;">Conectado como @${escapeHtml(state.user?.login || 'user')}</span>
         </div>
         <div class="stat-box">
-          <span class="stat-label">CVEs Activos</span>
-          <span class="stat-value" style="color: var(--danger);">0</span>
-          <span class="text-muted" style="font-size:0.75rem;">Protegido por OSV.dev</span>
+          <span class="stat-label">Ejecuciones Totales</span>
+          <span class="stat-value">${state.runs.length}</span>
+          <span class="text-muted" style="font-size:0.75rem;">Registradas en sesión</span>
         </div>
         <div class="stat-box">
-          <span class="stat-label">Próximo EOL</span>
-          <span class="stat-value" style="color: var(--warning);">Node 18</span>
-          <span class="text-muted" style="font-size:0.75rem;">Alerta preventiva activa</span>
+          <span class="stat-label">Protección CVEs</span>
+          <span class="stat-value" style="color: var(--success);">OSV.dev</span>
+          <span class="text-muted" style="font-size:0.75rem;">Activa</span>
         </div>
       </div>
 
@@ -139,24 +239,12 @@
               </tr>
             </thead>
             <tbody id="dashboard-recent-runs">
-              ${renderRecentRunsRows()}
+              ${recentRunsHtml}
             </tbody>
           </table>
         </div>
       </div>
     `;
-  }
-
-  function renderRecentRunsRows() {
-    if (state.runs.length === 0) return '<tr><td colspan="4" class="text-muted">Sin ejecuciones registradas.</td></tr>';
-    return state.runs.slice(0, 4).map(r => `
-      <tr>
-        <td><span class="badge badge-info">${r.functionType}</span></td>
-        <td><strong>${escapeHtml(r.name)}</strong></td>
-        <td><span class="badge badge-safe">${r.status.toUpperCase()}</span></td>
-        <td><button class="btn btn-secondary btn-sm" onclick="window.lepismShowRunDetails('${r.runId}')">Ver</button></td>
-      </tr>
-    `).join('');
   }
 
   // ─── 2. MOLT: Scan ──────────────────────────────────────────────────────────
@@ -1099,32 +1187,6 @@
     }
   };
 
-  function showTokenConfigModal() {
-    modalTitle.textContent = '🔑 Configurar Personal Access Token (PAT)';
-    modalBody.innerHTML = `
-      <p class="card-description">Tu token se almacena únicamente en la sesión local de tu navegador para interactuar con la API de GitHub.</p>
-      <div class="form-group">
-        <label class="form-label">GitHub PAT (con permiso <code>repo</code> y <code>workflow</code>)</label>
-        <input type="password" id="pat-input" class="form-input" placeholder="ghp_..." value="${escapeHtml(state.githubToken)}">
-      </div>
-    `;
-    modalFooter.innerHTML = `
-      <button class="btn btn-secondary btn-sm" onclick="window.lepismCloseModal()">Cancelar</button>
-      <button class="btn btn-primary btn-sm" onclick="window.lepismSaveToken()">Guardar Token</button>
-    `;
-    modalContainer.classList.remove('hidden');
-  }
-
-  window.lepismSaveToken = function () {
-    const input = document.getElementById('pat-input');
-    if (input) {
-      state.githubToken = input.value.trim();
-      sessionStorage.setItem('lepism_github_token', state.githubToken);
-      window.lepismCloseModal();
-      showToast('Token de GitHub guardado en sesión', 'success');
-    }
-  };
-
   function addRunRecord(type, name, config, result) {
     const run = {
       runId: `run_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -1140,13 +1202,6 @@
     state.runs.unshift(run);
     if (state.runs.length > 50) state.runs = state.runs.slice(0, 50);
     localStorage.setItem('lepism_runs', JSON.stringify(state.runs));
-  }
-
-  function seedInitialRunsIfEmpty() {
-    if (state.runs.length === 0) {
-      addRunRecord('scan', 'Initial Baseline Scan', { ecosystem: 'npm' }, { deps: 5 });
-      addRunRecord('analyze', 'Baseline Molt Score', {}, { score: 96 });
-    }
   }
 
   function showToast(message, type = 'info') {
