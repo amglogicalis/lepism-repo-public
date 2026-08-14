@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LEPISM — Structural Health & Anti-Decay Engine</title>
+  <link rel="icon" type="image/png" href="assets/logo_lepism.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <img src="assets/logo_lepism.png" alt="Lepism Logo" class="brand-logo">
+        <div class="brand-info">
+          <h1 class="brand-title">LEPISM</h1>
+          <span class="brand-badge">ANTI-DECAY</span>
+        </div>
+      </div>
+
+      <div class="vault-status-box">
+        <div class="vault-status-dot connected"></div>
+        <div class="vault-status-info">
+          <span class="vault-label">STORAGE VAULT</span>
+          <span class="vault-name" id="vault-repo-label">.lepism-storage</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">VISTA GENERAL</div>
+        <a href="#dashboard" class="nav-item active" data-view="dashboard">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+
+        <div class="nav-section-title">SUITE MOLT</div>
+        <a href="#scan" class="nav-item" data-view="scan">
+          <span class="nav-icon">🔍</span>
+          <span>Polyglot Scanner</span>
+        </a>
+        <a href="#analyze" class="nav-item" data-view="analyze">
+          <span class="nav-icon">🛡️</span>
+          <span>Molt Score & CVEs</span>
+        </a>
+        <a href="#phantom" class="nav-item" data-view="phantom">
+          <span class="nav-icon">👻</span>
+          <span>Phantom Deps</span>
+        </a>
+
+        <div class="nav-section-title">SUITE METAMORPHOSIS</div>
+        <a href="#metamorphosis" class="nav-item" data-view="metamorphosis">
+          <span class="nav-icon">🔬</span>
+          <span>API Breaking Diff</span>
+        </a>
+        <a href="#epoch" class="nav-item" data-view="epoch">
+          <span class="nav-icon">⏱️</span>
+          <span>Runtime EOL Tracker</span>
+        </a>
+        <a href="#collision" class="nav-item" data-view="collision">
+          <span class="nav-icon">💥</span>
+          <span>Peer Collisions</span>
+        </a>
+
+        <div class="nav-section-title">SUITE EXOSKELETON</div>
+        <a href="#sandbox" class="nav-item" data-view="sandbox">
+          <span class="nav-icon">🧪</span>
+          <span>Ephemeral Sandbox</span>
+        </a>
+        <a href="#molt" class="nav-item" data-view="molt">
+          <span class="nav-icon">🦎</span>
+          <span>Smart Molt Upgrade</span>
+        </a>
+        <a href="#autopr" class="nav-item" data-view="autopr">
+          <span class="nav-icon">🚀</span>
+          <span>Autonomous Auto-PR</span>
+        </a>
+
+        <div class="nav-section-title">SUITE FOSSIL</div>
+        <a href="#fossil" class="nav-item" data-view="fossil">
+          <span class="nav-icon">🏛️</span>
+          <span>Genealogy Ledger</span>
+        </a>
+        <a href="#schedule" class="nav-item" data-view="schedule">
+          <span class="nav-icon">⏰</span>
+          <span>Watchdog Cron</span>
+        </a>
+        <a href="#locksmith" class="nav-item" data-view="locksmith">
+          <span class="nav-icon">🔑</span>
+          <span>Locksmith Linter</span>
+        </a>
+
+        <div class="nav-section-title">ACTIVIDAD & GUÍA</div>
+        <a href="#runs" class="nav-item" data-view="runs">
+          <span class="nav-icon">📜</span>
+          <span>Diagnostic Runs</span>
+        </a>
+        <a href="#onboarding" class="nav-item" data-view="onboarding">
+          <span class="nav-icon">📖</span>
+          <span>Onboarding Guide</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="btn btn-secondary btn-sm full-width" id="btn-token-config">
+          🔑 Configurar PAT GitHub
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <header class="top-header">
+        <div class="header-left">
+          <h2 id="view-title">Dashboard</h2>
+          <p id="view-subtitle" class="text-muted">Métricas de salud, alertas de decadencia y estado del ecosistema</p>
+        </div>
+        <div class="header-right">
+          <div class="health-pill" id="global-health-pill">
+            <span class="health-dot"></span>
+            <span id="global-health-label">HEALTH SCORE: 96/100</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="view-container" id="view-container">
+        <!-- Views are rendered dynamically by app.js -->
+      </div>
+    </main>
+  </div>
+
+  <!-- Custom Dialog Modals (Dark Slate Glassmorphism) -->
+  <div id="modal-container" class="modal-overlay hidden">
+    <div class="modal-card" id="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-title">Título del Modal</h3>
+        <button class="modal-close" id="btn-modal-close">✕</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer" id="modal-footer"></div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

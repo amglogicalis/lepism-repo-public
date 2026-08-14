@@ -1,0 +1,9 @@
+{
+  "name": "terra-lepism-console",
+  "entry": "index.html",
+  "static": true,
+  "theme": {
+    "primary": "#48566f",
+    "background": "#0b0f15"
+  }
+}
