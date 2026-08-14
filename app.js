@@ -18,7 +18,6 @@
   const protectedConsole = document.getElementById('protected-console');
   const loginPatInput = document.getElementById('login-pat-input');
   const btnLoginConnect = document.getElementById('btn-login-connect');
-  const btnLogout = document.getElementById('btn-logout');
   const userDisplayName = document.getElementById('user-display-name');
 
   const viewTitle = document.getElementById('view-title');
@@ -38,7 +37,7 @@
     setupNavigation();
     setupModals();
 
-    if (state.githubToken) {
+    if (state.githubToken && state.user) {
       showProtectedConsole();
     } else {
       showLoginGate();
@@ -46,28 +45,31 @@
   }
 
   function setupAuth() {
-    if (btnLoginConnect) {
-      btnLoginConnect.addEventListener('click', handleLogin);
-    }
     if (loginPatInput) {
       loginPatInput.addEventListener('keydown', e => {
         if (e.key === 'Enter') handleLogin();
       });
     }
-    if (btnLogout) {
-      btnLogout.addEventListener('click', handleLogout);
-    }
   }
 
+  window.lepismLogin = function () {
+    handleLogin();
+  };
+
   async function handleLogin() {
-    const token = loginPatInput.value.trim();
+    const input = document.getElementById('login-pat-input');
+    const btn = document.getElementById('btn-login-connect');
+    const token = input ? input.value.trim() : '';
+
     if (!token) {
-      showToast('Por favor, introduce un Personal Access Token (PAT)', 'warning');
+      showToast('Por favor, introduce tu GitHub Personal Access Token (PAT)', 'warning');
       return;
     }
 
-    btnLoginConnect.disabled = true;
-    btnLoginConnect.textContent = 'Verificando con GitHub...';
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Verificando con GitHub...';
+    }
 
     try {
       const res = await fetch('https://api.github.com/user', {
@@ -94,32 +96,53 @@
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
-      btnLoginConnect.disabled = false;
-      btnLoginConnect.textContent = '🔑 Conectar Bóveda y Desbloquear Consola';
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '🔑 Conectar Bóveda y Desbloquear Consola';
+      }
     }
   }
 
-  function handleLogout() {
+  window.lepismLogout = function () {
     state.githubToken = '';
     state.user = null;
-    sessionStorage.removeItem('lepism_github_token');
-    sessionStorage.removeItem('lepism_user');
-    if (loginPatInput) loginPatInput.value = '';
-    showToast('Sesión cerrada correctamente', 'info');
-    showLoginGate();
-  }
+    sessionStorage.clear();
+    localStorage.removeItem('lepism_github_token');
+    localStorage.removeItem('lepism_user');
+    localStorage.removeItem('lepism_runs');
+    state.runs = [];
+
+    const gate = document.getElementById('login-gate');
+    const consoleEl = document.getElementById('protected-console');
+    const input = document.getElementById('login-pat-input');
+    const userLabel = document.getElementById('user-display-name');
+
+    if (gate) gate.style.display = 'flex';
+    if (consoleEl) consoleEl.style.display = 'none';
+    if (input) input.value = '';
+    if (userLabel) userLabel.textContent = '👤 @desconectado';
+
+    showToast('Sesión cerrada correctamente. Consola bloqueada.', 'info');
+  };
 
   function showLoginGate() {
-    loginGate.classList.remove('hidden');
-    protectedConsole.classList.add('hidden');
+    const gate = document.getElementById('login-gate');
+    const consoleEl = document.getElementById('protected-console');
+
+    if (gate) gate.style.display = 'flex';
+    if (consoleEl) consoleEl.style.display = 'none';
   }
 
   function showProtectedConsole() {
-    loginGate.classList.add('hidden');
-    protectedConsole.classList.remove('hidden');
+    const gate = document.getElementById('login-gate');
+    const consoleEl = document.getElementById('protected-console');
+    const userLabel = document.getElementById('user-display-name');
 
-    if (userDisplayName && state.user) {
-      userDisplayName.textContent = `👤 @${state.user.login}`;
+    if (gate) gate.style.display = 'none';
+    if (consoleEl) consoleEl.style.display = 'flex';
+
+    if (userLabel && state.user) {
+      userLabel.textContent = `👤 @${state.user.login}`;
     }
 
     navigate(window.location.hash.replace('#', '') || 'dashboard');
@@ -142,6 +165,11 @@
   }
 
   function navigate(viewName) {
+    if (!state.githubToken) {
+      showLoginGate();
+      return;
+    }
+
     state.currentView = viewName;
     window.location.hash = viewName;
 
@@ -181,7 +209,7 @@
     viewSubtitle.textContent = 'Métricas de salud, alertas de decadencia y estado del ecosistema';
 
     const recentRunsHtml = state.runs.length === 0
-      ? '<tr><td colspan="4" class="text-muted">Sin ejecuciones registradas. Ejecuta tu primera auditoría en el menú lateral.</td></tr>'
+      ? '<tr><td colspan="4" class="text-muted">Sin ejecuciones registradas. Selecciona una herramienta en el menú para comenzar.</td></tr>'
       : state.runs.slice(0, 4).map(r => `
         <tr>
           <td><span class="badge badge-info">${r.functionType}</span></td>
@@ -200,18 +228,18 @@
         </div>
         <div class="stat-box">
           <span class="stat-label">Bóveda de Estado</span>
-          <span class="stat-value" style="font-size:1.2rem; font-family:var(--font-mono); color:var(--accent-bright);">.lepism-storage</span>
+          <span class="stat-value" style="font-size:1.1rem; font-family:var(--font-mono); color:var(--accent-bright);">.lepism-storage</span>
           <span class="text-muted" style="font-size:0.75rem;">Conectado como @${escapeHtml(state.user?.login || 'user')}</span>
         </div>
         <div class="stat-box">
           <span class="stat-label">Ejecuciones Totales</span>
           <span class="stat-value">${state.runs.length}</span>
-          <span class="text-muted" style="font-size:0.75rem;">Registradas en sesión</span>
+          <span class="text-muted" style="font-size:0.75rem;">Historial local activo</span>
         </div>
         <div class="stat-box">
           <span class="stat-label">Protección CVEs</span>
           <span class="stat-value" style="color: var(--success);">OSV.dev</span>
-          <span class="text-muted" style="font-size:0.75rem;">Activa</span>
+          <span class="text-muted" style="font-size:0.75rem;">Conexión directa activa</span>
         </div>
       </div>
 
@@ -689,7 +717,7 @@
             </tr>
           </thead>
           <tbody>
-            ${state.runs.length === 0 ? '<tr><td colspan="6" class="text-muted">Sin ejecuciones previas.</td></tr>' : state.runs.map(r => `
+            ${state.runs.length === 0 ? '<tr><td colspan="6" class="text-muted">Sin ejecuciones previas en la sesión actual.</td></tr>' : state.runs.map(r => `
               <tr>
                 <td><code>${r.runId.substring(0, 12)}...</code></td>
                 <td><span class="badge badge-info">${r.functionType}</span></td>
@@ -1230,6 +1258,10 @@
       .replace(/"/g, '&quot;');
   }
 
-  // Start app
-  document.addEventListener('DOMContentLoaded', init);
+  // Start app immediately and on DOM load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();

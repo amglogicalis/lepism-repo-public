@@ -13,7 +13,7 @@
 <body>
 
   <!-- Auth / Login Gate (Shown when unauthenticated) -->
-  <div id="login-gate" class="login-gate-wrapper">
+  <div id="login-gate" class="login-gate-wrapper" style="display: flex;">
     <div class="login-card glass-card">
       <img src="assets/logo_lepism.png" alt="Lepism Logo" class="login-logo">
       <h2 class="login-title">Acceso Protegido — Lepism Studio</h2>
@@ -25,14 +25,14 @@
         <span class="text-muted" style="font-size: 0.72rem; display: block; margin-top: 4px;">El token se almacena de forma segura únicamente en tu sesión local.</span>
       </div>
 
-      <button id="btn-login-connect" class="btn btn-primary full-width" style="margin-top: 14px;">
+      <button id="btn-login-connect" onclick="window.lepismLogin()" class="btn btn-primary full-width" style="margin-top: 14px;">
         🔑 Conectar Bóveda y Desbloquear Consola
       </button>
     </div>
   </div>
 
   <!-- Protected Console Layout (Shown ONLY when authenticated) -->
-  <div id="protected-console" class="app-layout hidden">
+  <div id="protected-console" class="app-layout" style="display: none;">
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
       <div class="sidebar-header">
@@ -127,9 +127,9 @@
 
       <div class="sidebar-footer">
         <div class="user-badge" id="user-display-badge">
-          <span id="user-display-name">👤 @amglogicalis</span>
+          <span id="user-display-name">👤 @cargando...</span>
         </div>
-        <button class="btn btn-secondary btn-sm full-width" id="btn-logout" style="margin-top: 8px;">
+        <button class="btn btn-secondary btn-sm full-width" id="btn-logout" onclick="window.lepismLogout()" style="margin-top: 8px;">
           🔒 Desconectar
         </button>
       </div>
