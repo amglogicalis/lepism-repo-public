@@ -676,9 +676,13 @@ body {
 }
 
 .login-logo {
-  width: 72px;
-  height: 72px;
+  width: 72px !important;
+  height: 72px !important;
+  max-width: 72px !important;
+  max-height: 72px !important;
+  object-fit: contain;
   margin: 0 auto 16px auto;
+  display: block;
   filter: drop-shadow(0 0 12px rgba(72, 86, 111, 0.6));
 }
 
