@@ -247,6 +247,11 @@ body {
 }
 
 .header-left p {
+  font-size: 0.85rem;
+  margin-top: 2px;
+  color: var(--text-muted);
+}
+
 .header-right {
   display: flex;
   align-items: center;
@@ -773,5 +778,100 @@ body {
 .hidden {
   display: none !important;
 }
+
+/* Target & Provider Management */
+.target-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  margin-top: 16px;
+}
+
+.target-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.target-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.target-card.active-target-card {
+  border-color: var(--success);
+  box-shadow: 0 0 16px rgba(34, 197, 94, 0.2);
+}
+
+.target-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.target-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+  word-break: break-all;
+}
+
+.target-details-list {
+  list-style: none;
+  margin: 12px 0 18px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.target-details-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.target-details-list strong {
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  min-width: 70px;
+}
+
+.target-details-list code {
+  background: rgba(72, 86, 111, 0.2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--accent-bright);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  word-break: break-all;
+}
+
+.target-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(72, 86, 111, 0.15);
+  padding-top: 12px;
+  margin-top: 6px;
+}
+
+.form-target-box {
+  background: rgba(72, 86, 111, 0.12);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+
 
 
